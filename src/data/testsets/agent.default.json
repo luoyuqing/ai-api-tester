@@ -1,0 +1,58 @@
+{
+  "id": "suite.agent.default",
+  "name": "Agent 兼容性默认用例集",
+  "version": "1.0.0",
+  "builtin": true,
+  "kind": ["func.agent"],
+  "description": "FUNC-04：WorkBuddy 走 OpenAI function-calling 风格握手（含流式 tool_call 增量拼装），Hermes 走 <tool_call>{json}</tool_call> 标签式输出。判定三级 PASS/PARTIAL/FAIL。新增框架只需在此追加条目。",
+  "cases": [
+    {
+      "id": "agent.workbuddy.single",
+      "kind": "func.agent",
+      "title": "WorkBuddy · 单工具调用握手",
+      "agentFramework": "workbuddy",
+      "weight": 1.5,
+      "prompt": "帮我查一下北京今天的天气，需要摄氏度。",
+      "expectation": {
+        "mustInclude": ["get_weather"]
+      },
+      "note": "期望模型返回结构化 tool_calls，function.name=get_weather，arguments 为可解析 JSON 且包含 location 字段。"
+    },
+    {
+      "id": "agent.workbuddy.multi",
+      "kind": "func.agent",
+      "title": "WorkBuddy · 多工具选择",
+      "agentFramework": "workbuddy",
+      "weight": 1,
+      "prompt": "把 128 兆字节换算成吉字节，并把结果记到我的备忘录里。",
+      "expectation": {
+        "mustInclude": ["calculate"]
+      },
+      "note": "提供 get_weather / calculate / save_note 三个工具，验证模型能否选中正确工具（至少命中 calculate）。"
+    },
+    {
+      "id": "agent.hermes.tagged",
+      "kind": "func.agent",
+      "title": "Hermes · 标签式工具调用",
+      "agentFramework": "hermes",
+      "weight": 1.5,
+      "prompt": "查询北京今天的天气，使用摄氏度。",
+      "expectation": {
+        "regex": "<tool_call>[\\s\\S]*</tool_call>"
+      },
+      "note": "系统提示以 Hermes 约定注入工具清单，期望模型输出 <tool_call>{\"name\":...,\"arguments\":{...}}</tool_call> 标签。"
+    },
+    {
+      "id": "agent.hermes.react",
+      "kind": "func.agent",
+      "title": "Hermes · ReAct 多轮推进",
+      "agentFramework": "hermes",
+      "weight": 1,
+      "prompt": "先查询北京天气，拿到结果后判断是否需要带伞，并给出最终结论。",
+      "expectation": {
+        "mustInclude": ["伞"]
+      },
+      "note": "第二轮把伪造的工具返回值以 <tool_response> 形式回灌，验证模型能否消费工具结果并产出最终答案。"
+    }
+  ]
+}

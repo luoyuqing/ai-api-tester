@@ -1,0 +1,244 @@
+classDiagram
+    direction LR
+
+    class Provider {
+      +string id
+      +string name
+      +ProviderType type
+      +string endpoint
+      +string model
+      +string secretRef
+      +TransportMode transport
+      +boolean supportsStream
+      +number timeoutMs
+    }
+
+    class TestCase {
+      +string id
+      +CaseKind kind
+      +string title
+      +ChatTurn[] turns
+      +string prompt
+      +Expectation expectation
+      +number weight
+    }
+
+    class TestSuite {
+      +string id
+      +string name
+      +boolean builtin
+      +TestCase[] cases
+      +getByKind(kind) TestCase[]
+    }
+
+    class EvaluationConfig {
+      +string id
+      +string[] providerIds
+      +Dimension[] dimensions
+      +string[] suiteIds
+      +number concurrency
+      +number stabilitySampleSize
+      +ScoringSetting scoring
+      +validate() boolean
+    }
+
+    class EvaluationEngine {
+      -Scheduler scheduler
+      -ProbeRegistry registry
+      -AdapterFactory factory
+      -Aggregator aggregator
+      +run(config, deps, hooks) EvaluationHandle
+      -buildPlan(config) PlanUnit[]
+      -executeUnit(unit) ProbeResult
+      -finalize(results) EvaluationResult[]
+    }
+
+    class Scheduler {
+      -number concurrency
+      -PlanUnit[] queue
+      -Set~AbortController~ inflight
+      +submit(units, worker) Promise
+      +cancel() void
+      +pause() void
+      +resume() void
+      -emitProgress() void
+    }
+
+    class ProbeRegistry {
+      -Map~CaseKind, Probe~ probes
+      +register(probe) void
+      +resolve(dimension, provider) Probe[]
+    }
+
+    class Probe {
+      <<interface>>
+      +string id
+      +Dimension dimension
+      +supports(provider) boolean
+      +estimateUnits(ctx) number
+      +run(ctx) ProbeResult
+    }
+
+    class LatencyProbe
+    class StabilityProbe
+    class ContextWindowProbe
+    class ChatQualityProbe
+    class ImageGenProbe
+    class MultimodalProbe
+    class AgentCompatProbe
+    class ModerationProbe
+    class SensitiveWordProbe
+    class JailbreakProbe
+
+    class ProviderAdapter {
+      <<interface>>
+      +chat(input, opt) ChatOutcome
+      +image(prompt, opt) ImageOutcome
+      +multimodal(input, opt) ChatOutcome
+      +handshake(framework, opt) HandshakeOutcome
+      +ping(opt) ConnectivityResult
+    }
+
+    class OpenAIChatAdapter {
+      -Transport transport
+      +chat(input, opt) ChatOutcome
+      -readStreamMeasuringTTFT(res) ChatOutcome
+    }
+    class OpenAIImageAdapter
+    class MultimodalAdapter
+    class AgentHandshakeAdapter
+
+    class AdapterFactory {
+      +create(provider, secret) ProviderAdapter
+    }
+
+    class Transport {
+      <<interface>>
+      +request(req, signal) HttpResponse
+      +stream(req, signal) StreamChunk
+    }
+    class DirectTransport
+    class ProxyTransport
+
+    class Scorer {
+      <<interface>>
+      +ScoringMode mode
+      +score(input) ScoreOutput
+    }
+    class RuleScorer
+    class LlmJudgeScorer
+
+    class Aggregator {
+      +normalize(probeResults) MetricRecord[]
+      +toDimensionScores(metrics) DimensionScore[]
+      +overall(dimScores, weights) number
+      -redistributeWeights(metrics) MetricRecord[]
+    }
+
+    class ProbeResult {
+      +string probeId
+      +string providerId
+      +string status
+      +RequestSample[] samples
+      +Record metrics
+      +number rawScore
+      +string[] evidence
+    }
+
+    class EvaluationResult {
+      +string id
+      +string providerId
+      +DimensionScore[] dimensionScores
+      +number overallScore
+      +ProbeResult[] probeResults
+      +EvaluationConfig configSnapshot
+    }
+
+    class Repository {
+      <<interface>>
+      +listProviders() Provider[]
+      +saveProvider(p, plainKey) void
+      +getSecret(ref) string
+      +saveResult(r) void
+      +getResult(id) EvaluationResult
+    }
+    class LocalRepository {
+      -CryptoService crypto
+      +migrate(fromVersion) void
+    }
+    class CryptoService {
+      +deriveKey(passphrase, salt) CryptoKey
+      +encrypt(plain) string
+      +decrypt(cipher) string
+    }
+
+    class ProviderStore {
+      +Provider[] providers
+      +upsert(p) void
+      +remove(id) void
+      +testConnectivity(id) ConnectivityResult
+    }
+    class RunStore {
+      +TaskStatus status
+      +number percent
+      +LogLine[] logs
+      +EvaluationHandle handle
+      +start(config) void
+      +cancel() void
+      +applyEvent(e) void
+    }
+    class ResultStore {
+      +ResultIndexItem[] index
+      +string[] comparisonIds
+      +load(id) EvaluationResult
+      +setComparison(ids) void
+    }
+
+    EvaluationEngine "1" *-- "1" Scheduler
+    EvaluationEngine "1" *-- "1" ProbeRegistry
+    EvaluationEngine "1" *-- "1" Aggregator
+    EvaluationEngine "1" --> "1" AdapterFactory
+    EvaluationEngine ..> EvaluationConfig : consumes
+    EvaluationEngine ..> EvaluationResult : produces
+
+    ProbeRegistry "1" o-- "*" Probe
+    Probe <|.. LatencyProbe
+    Probe <|.. StabilityProbe
+    Probe <|.. ContextWindowProbe
+    Probe <|.. ChatQualityProbe
+    Probe <|.. ImageGenProbe
+    Probe <|.. MultimodalProbe
+    Probe <|.. AgentCompatProbe
+    Probe <|.. ModerationProbe
+    Probe <|.. SensitiveWordProbe
+    Probe <|.. JailbreakProbe
+
+    Probe ..> ProviderAdapter : calls
+    Probe ..> TestCase : reads
+    Probe ..> ProbeResult : returns
+    Probe ..> Scorer : uses
+
+    ProviderAdapter <|.. OpenAIChatAdapter
+    ProviderAdapter <|.. OpenAIImageAdapter
+    ProviderAdapter <|.. MultimodalAdapter
+    ProviderAdapter <|.. AgentHandshakeAdapter
+    AdapterFactory ..> ProviderAdapter : creates
+    OpenAIChatAdapter --> Transport
+    Transport <|.. DirectTransport
+    Transport <|.. ProxyTransport
+
+    Scorer <|.. RuleScorer
+    Scorer <|.. LlmJudgeScorer
+    LlmJudgeScorer --> ProviderAdapter : judge model
+
+    Aggregator ..> ProbeResult : input
+    Aggregator ..> EvaluationResult : output
+
+    Repository <|.. LocalRepository
+    LocalRepository *-- CryptoService
+    ProviderStore --> Repository
+    ResultStore --> Repository
+    RunStore --> EvaluationEngine
+    TestSuite "1" o-- "*" TestCase
+    EvaluationConfig ..> Provider : references
+    EvaluationConfig ..> TestSuite : references

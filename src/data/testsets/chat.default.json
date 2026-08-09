@@ -1,0 +1,146 @@
+{
+  "id": "suite.chat.default",
+  "name": "聊天质量默认用例集",
+  "version": "1.0.0",
+  "builtin": true,
+  "kind": ["func.chat"],
+  "description": "FUNC-01：多轮对话连贯性（指代消解、上下文记忆、话题保持）与指令遵循（字数、格式、JSON、禁止词、语言）。",
+  "cases": [
+    {
+      "id": "chat.coherence.anaphora",
+      "kind": "func.chat",
+      "title": "多轮连贯性 · 指代消解",
+      "weight": 1.5,
+      "turns": [
+        { "role": "user", "content": "我们团队正在评估 PostgreSQL 和 ClickHouse 用于风控日志分析。" },
+        {
+          "role": "assistant",
+          "content": "了解。两者定位不同：PostgreSQL 偏 OLTP 与中小规模分析，ClickHouse 是列式 OLAP，擅长大规模聚合扫描。"
+        },
+        { "role": "user", "content": "那后者在高基数维度上的表现怎么样？给出两条具体建议。" }
+      ],
+      "expectation": {
+        "mustInclude": ["ClickHouse"],
+        "mustNotInclude": ["您指的是哪一个", "请问您说的是"],
+        "minWords": 20
+      },
+      "judgeRubric": "判断回答是否正确将「后者」解析为 ClickHouse，并针对高基数维度给出至少两条具体、可执行的建议。完全正确且具体=90-100；正确但建议空泛=60-80；指代错误或反问用户=0-30。"
+    },
+    {
+      "id": "chat.coherence.memory",
+      "kind": "func.chat",
+      "title": "多轮连贯性 · 跨轮记忆",
+      "weight": 1.5,
+      "turns": [
+        { "role": "user", "content": "记住三个数字：审批阈值 47、并发上限 12、留存天数 180。" },
+        { "role": "assistant", "content": "已记住：审批阈值 47、并发上限 12、留存天数 180。" },
+        { "role": "user", "content": "现在把留存天数改成 365。" },
+        { "role": "assistant", "content": "好的，留存天数已更新为 365。" },
+        {
+          "role": "user",
+          "content": "请按「审批阈值/并发上限/留存天数」的顺序，用斜杠分隔输出当前的三个数字，不要任何其它文字。"
+        }
+      ],
+      "expectation": {
+        "regex": "47\\s*/\\s*12\\s*/\\s*365",
+        "maxWords": 20
+      },
+      "judgeRubric": "回答必须精确输出 47/12/365。完全正确=100；数字对但夹带解释=70；任一数字错误=0。"
+    },
+    {
+      "id": "chat.instruct.wordlimit",
+      "kind": "func.chat",
+      "title": "指令遵循 · 字数上限",
+      "weight": 1,
+      "turns": [
+        {
+          "role": "user",
+          "content": "用不超过 30 个字概括「零信任架构」的核心思想。不要举例，不要换行。"
+        }
+      ],
+      "expectation": {
+        "maxWords": 45,
+        "mustNotInclude": ["例如", "比如"]
+      },
+      "judgeRubric": "检查是否遵守 30 字上限（中文按字计）、是否未举例、是否单行。全部满足=100；仅超字数 20% 以内=70；明显超长或举例=30。"
+    },
+    {
+      "id": "chat.instruct.json",
+      "kind": "func.chat",
+      "title": "指令遵循 · 强制 JSON 输出",
+      "weight": 1.5,
+      "turns": [
+        {
+          "role": "user",
+          "content": "请仅输出一个 JSON 对象，不要 Markdown 代码块、不要任何解释。字段：name(字符串，值为 \"risk-engine\")、version(字符串)、enabled(布尔)、maxQps(整数)。"
+        }
+      ],
+      "expectation": {
+        "mustBeJson": true,
+        "jsonSchema": {
+          "type": "object",
+          "required": ["name", "version", "enabled", "maxQps"],
+          "properties": {
+            "name": { "type": "string" },
+            "version": { "type": "string" },
+            "enabled": { "type": "boolean" },
+            "maxQps": { "type": "number" }
+          }
+        }
+      },
+      "judgeRubric": "响应必须是可直接 JSON.parse 的对象且包含全部四个字段与正确类型。完全符合=100；含代码块包裹但可解析=70；缺字段或类型错=30；不可解析=0。"
+    },
+    {
+      "id": "chat.instruct.format",
+      "kind": "func.chat",
+      "title": "指令遵循 · 结构化格式",
+      "weight": 1,
+      "turns": [
+        {
+          "role": "user",
+          "content": "列出三种常见的 API 限流算法，严格使用「序号. 名称 —— 一句话说明」的格式，共三行，不要开场白和总结。"
+        }
+      ],
+      "expectation": {
+        "regex": "1\\.[\\s\\S]*2\\.[\\s\\S]*3\\.",
+        "mustInclude": ["—"],
+        "mustNotInclude": ["希望", "总结如下"]
+      },
+      "judgeRubric": "检查是否恰好三行、是否使用要求的分隔格式、是否没有多余开场白。完全符合=100；格式基本正确但有开场白=60；未按格式=20。"
+    },
+    {
+      "id": "chat.instruct.negative",
+      "kind": "func.chat",
+      "title": "指令遵循 · 禁止词约束",
+      "weight": 1,
+      "turns": [
+        {
+          "role": "user",
+          "content": "请解释「幂等性」在支付接口中的作用，回答中不得出现「重复」这两个字，也不要使用任何比喻。"
+        }
+      ],
+      "expectation": {
+        "mustNotInclude": ["重复"],
+        "minWords": 15
+      },
+      "judgeRubric": "回答必须完全不含「重复」二字且不使用比喻，同时准确解释幂等性。全部满足=100；出现禁止词=0；解释错误=20。"
+    },
+    {
+      "id": "chat.instruct.language",
+      "kind": "func.chat",
+      "title": "指令遵循 · 语言约束",
+      "weight": 1,
+      "turns": [
+        {
+          "role": "user",
+          "content": "Answer in Simplified Chinese only: what is the difference between a mutex and a semaphore?"
+        }
+      ],
+      "expectation": {
+        "language": "zh",
+        "minWords": 15
+      },
+      "judgeRubric": "回答必须为简体中文且内容正确。全中文且正确=100；中英混杂=50；全英文=0。"
+    }
+  ]
+}

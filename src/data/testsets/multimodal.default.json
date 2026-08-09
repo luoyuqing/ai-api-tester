@@ -1,0 +1,49 @@
+{
+  "id": "suite.multimodal.default",
+  "name": "多模态默认用例集",
+  "version": "1.0.0",
+  "builtin": true,
+  "kind": ["func.multimodal"],
+  "description": "FUNC-03：以极小内联样本（≤50KB）探测 image_url / input_audio / video_url 三类 content part 的接受度，三态判定 支持/降级/不支持。",
+  "cases": [
+    {
+      "id": "multimodal.image",
+      "kind": "func.multimodal",
+      "title": "图像输入支持度",
+      "weight": 1,
+      "prompt": "这张图片的主色调是什么？只回答颜色名称。",
+      "attachment": {
+        "modality": "image",
+        "mimeType": "image/png",
+        "dataUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAHElEQVQoz2P8z8BQz0AEYCJG0ahCWiukpaUFAG9nAgm7pI3jAAAAAElFTkSuQmCC"
+      },
+      "note": "8x8 纯色 PNG。判定依据是接口是否接受 image_url content part 并返回非错误响应。"
+    },
+    {
+      "id": "multimodal.audio",
+      "kind": "func.multimodal",
+      "title": "音频输入支持度",
+      "weight": 1,
+      "prompt": "请描述这段音频的内容；若无法处理音频请直接说明。",
+      "attachment": {
+        "modality": "audio",
+        "mimeType": "audio/wav",
+        "dataUrl": "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAiBUAAIgVAAABAAgAZGF0YQAAAAA="
+      },
+      "note": "44 字节静音 WAV。多数纯文本模型会以 bad_request 拒绝 input_audio content part。"
+    },
+    {
+      "id": "multimodal.video",
+      "kind": "func.multimodal",
+      "title": "视频输入支持度",
+      "weight": 1,
+      "prompt": "请描述这段视频；若无法处理视频请直接说明。",
+      "attachment": {
+        "modality": "video",
+        "mimeType": "video/mp4",
+        "dataUrl": "data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQ=="
+      },
+      "note": "仅含 ftyp/free box 的 MP4 容器桩。绝大多数 OpenAI 兼容端点不接受 video_url content part。"
+    }
+  ]
+}

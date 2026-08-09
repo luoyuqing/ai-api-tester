@@ -1,0 +1,102 @@
+sequenceDiagram
+    autonumber
+    actor U as 评测工程师
+    participant EP as TestExecutionPage
+    participant RS as RunStore
+    participant EN as EvaluationEngine
+    participant SC as Scheduler
+    participant PR as ProbeRegistry
+    participant PB as Probe(Latency/Chat/Safe...)
+    participant AF as AdapterFactory
+    participant AD as OpenAIChatAdapter
+    participant TR as Transport(direct|proxy)
+    participant API as 目标 AI API
+    participant SR as Scorer
+    participant AG as Aggregator
+    participant RP as LocalRepository
+    participant RES as ResultStore
+    participant DB as DashboardPage
+
+    U->>EP: 勾选模型/维度，设并发数=5，点击「启动评测」
+    EP->>RS: start(config)
+    RS->>RP: listProviders() + getSecret(secretRef)
+    RP-->>RS: Provider[] + 解密后 apiKey（仅内存）
+    RS->>EN: runEvaluation(config, deps, hooks)
+
+    EN->>EN: buildPlan(config) 展开 Provider × 维度 × 探针 × 用例
+    EN->>PR: resolve(dimension, provider)
+    PR-->>EN: Probe[]（不支持的能力标 skip）
+    EN->>SC: submit(planUnits, worker)
+    EN-->>RS: RunEvent{task:start, totalUnits}
+    RS-->>EP: 渲染进度条 0%
+
+    loop 并发度受控循环（≤ concurrency）
+        SC->>PB: run(ctx)  [持有独立 AbortController]
+        PB->>AF: create(provider, secret)
+        AF-->>PB: ProviderAdapter 实例
+        PB->>AD: chat(input, {stream:true, timeoutMs})
+        AD->>TR: stream(req, signal)
+        TR->>API: POST /v1/chat/completions (SSE)
+        Note over AD,API: t0 = performance.now() 于 fetch 前记录
+        API-->>TR: 首个含 delta.content 的 SSE 事件
+        TR-->>AD: StreamChunk（首包）
+        Note over AD: t1 → ttftMs = t1 - t0
+        API-->>TR: 后续增量 ... [DONE]
+        TR-->>AD: 流结束
+        Note over AD: t2 → e2eMs = t2 - t0
+        AD-->>PB: ChatOutcome{text, ttftMs, e2eMs, status}
+
+        alt 请求异常
+            AD-->>PB: EvaluationError
+            PB->>PB: classifyError() → network/auth/rate_limit/timeout/...
+            opt 429 或 5xx 且 retried < maxRetries
+                PB->>AD: 指数退避后重试
+            end
+        end
+
+        opt 需要判分（FUNC / SAFE 类探针）
+            PB->>SR: score({case, response, mode})
+            alt mode = 'rule'
+                SR->>SR: 正则/关键词/JSON Schema 校验
+            else mode = 'llm-judge'
+                SR->>AD: 调用裁判 Provider（固定 rubric，强制 JSON 输出）
+                AD-->>SR: {score, reason}
+            end
+            SR-->>PB: {score, evidence[]}
+        end
+
+        PB-->>SC: ProbeResult
+        SC-->>RS: RunEvent{probe:done} + {log} + {progress}
+        RS-->>EP: 追加日志行 / 刷新进度百分比
+        SC->>RP: 增量落盘 ProbeResult（IndexedDB，防中断丢失）
+    end
+
+    opt 用户中途点击「取消」
+        U->>EP: 点击取消
+        EP->>RS: cancel()
+        RS->>SC: cancel() → 广播 AbortController.abort()
+        SC-->>RS: RunEvent{task:cancelled}（已完成部分仍可聚合）
+    end
+
+    SC-->>EN: 全部 ProbeResult 收集完成
+    EN->>AG: normalize(probeResults)
+    AG->>AG: 原始指标 → 0-100；N/A 项权重再分配
+    AG->>AG: toDimensionScores() → overall(weights)
+    AG-->>EN: EvaluationResult[]（按 Provider 一份）
+    EN->>RP: saveResult(result) × N（索引写 localStorage，明细写 IndexedDB）
+    EN-->>RS: RunEvent{task:done, results}
+    RS->>RES: refreshIndex() + setComparison(resultIds)
+    RS-->>EP: 状态 completed，弹出「查看报告」
+
+    U->>DB: 跳转结果 Dashboard
+    DB->>RES: load(ids)（2-5 个模型）
+    RES->>RP: getResult(id)
+    RP-->>RES: EvaluationResult 明细
+    RES-->>DB: 对比数据集
+    DB->>DB: useComparison() 装配 → 雷达图 / 柱状图 / 明细表
+    DB-->>U: 渲染多模型对比报告
+    opt 导出（P2）
+        U->>DB: 点击「导出 Excel / PDF」
+        DB->>DB: lib/export.ts → xlsx / jspdf+html2canvas
+        DB-->>U: 下载文件
+    end

@@ -1,0 +1,41 @@
+{
+  "id": "suite.image.default",
+  "name": "生图默认用例集",
+  "version": "1.0.0",
+  "builtin": true,
+  "kind": ["func.image"],
+  "description": "FUNC-02：调用 /v1/images/generations，统计成功率、响应可解析率与 prompt 相关性（基于 revised_prompt 或返回元数据的关键词命中）。",
+  "cases": [
+    {
+      "id": "image.basic.object",
+      "kind": "func.image",
+      "title": "基础物体生成",
+      "weight": 1,
+      "prompt": "A single red ceramic coffee mug on a plain white table, soft studio lighting, photorealistic, centered composition",
+      "expectation": {
+        "mustInclude": ["mug", "red"]
+      },
+      "note": "相关性关键词用于校验 revised_prompt / 元数据是否保留了核心语义"
+    },
+    {
+      "id": "image.scene.composition",
+      "kind": "func.image",
+      "title": "场景与构图",
+      "weight": 1,
+      "prompt": "A quiet library reading room at dusk, tall wooden bookshelves, warm lamp light, one empty armchair by the window, wide angle",
+      "expectation": {
+        "mustInclude": ["library", "window"]
+      }
+    },
+    {
+      "id": "image.style.illustration",
+      "kind": "func.image",
+      "title": "风格化插画",
+      "weight": 1,
+      "prompt": "Flat vector illustration of a data pipeline: three connected nodes labeled ingest, process, store, blue and grey palette, minimal, no text artifacts",
+      "expectation": {
+        "mustInclude": ["illustration", "vector"]
+      }
+    }
+  ]
+}

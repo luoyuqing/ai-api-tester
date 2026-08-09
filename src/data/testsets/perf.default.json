@@ -1,0 +1,69 @@
+{
+  "id": "suite.perf.default",
+  "name": "性能默认用例集",
+  "version": "1.0.0",
+  "builtin": true,
+  "kind": ["perf.latency", "perf.stability", "perf.context"],
+  "description": "PERF-01/02/03 的默认载荷：短/中/长 prompt 延迟采样、稳定性压测基准请求、上下文窗口 needle-in-haystack 探测。",
+  "cases": [
+    {
+      "id": "perf.latency.short",
+      "kind": "perf.latency",
+      "title": "短 prompt 延迟",
+      "weight": 1,
+      "note": "最小载荷，反映链路与调度的固有延迟",
+      "turns": [{ "role": "user", "content": "用一句话解释什么是向量数据库。" }]
+    },
+    {
+      "id": "perf.latency.medium",
+      "kind": "perf.latency",
+      "title": "中等 prompt 延迟",
+      "weight": 1,
+      "note": "约 200 字输入 + 中等长度输出",
+      "turns": [
+        {
+          "role": "system",
+          "content": "你是一名严谨的技术文档工程师，回答要求条理清晰、避免空话。"
+        },
+        {
+          "role": "user",
+          "content": "请分三点说明在企业内网部署大模型推理服务时，需要重点评估的性能指标，每点不超过 40 字。"
+        }
+      ]
+    },
+    {
+      "id": "perf.latency.long",
+      "kind": "perf.latency",
+      "title": "长 prompt 延迟",
+      "weight": 1,
+      "note": "较长输入，观察 prefill 阶段对 TTFT 的影响",
+      "turns": [
+        {
+          "role": "user",
+          "content": "以下是一段系统日志摘要：服务 A 在 09:12 出现 P99 延迟从 220ms 抬升到 1.8s，同时 GC 次数由每分钟 3 次上升到 41 次；服务 B 在 09:13 开始出现连接池耗尽告警；数据库主库 CPU 从 35% 上升到 92%，慢查询数量增长 8 倍；网关侧 5xx 比例由 0.02% 上升到 3.7%。请基于以上信息给出最可能的根因假设、验证这些假设需要补充采集的三类数据，以及在不停服前提下的临时缓解措施。回答控制在 300 字以内。"
+        }
+      ]
+    },
+    {
+      "id": "perf.stability.baseline",
+      "kind": "perf.stability",
+      "title": "稳定性压测基准请求",
+      "weight": 1,
+      "note": "StabilityProbe 会将该用例重复 N 次（默认 30），统计错误率与超时率",
+      "turns": [
+        { "role": "user", "content": "请回答：1 加 1 等于几？只输出数字。" }
+      ],
+      "expectation": {
+        "mustInclude": ["2"]
+      }
+    },
+    {
+      "id": "perf.context.needle",
+      "kind": "perf.context",
+      "title": "上下文窗口 needle-in-haystack 探测",
+      "weight": 1,
+      "note": "ContextWindowProbe 会按阶梯填充草堆文本并在中部埋入一条可校验信息，验证模型能否召回",
+      "prompt": "请阅读上面全部内容，回答：文中提到的「审计凭证编号」是多少？只输出编号本身，不要任何解释。"
+    }
+  ]
+}

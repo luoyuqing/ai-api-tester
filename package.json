@@ -1,0 +1,88 @@
+{
+  "name": "ai-api-tester",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "AI API 质量评测平台 — 浏览器内评测引擎，覆盖性能/功能/破限三大维度",
+  "engines": {
+    "node": ">=18.17.0"
+  },
+  "main": "electron/main.cjs",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit -p tsconfig.json && vite build",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "check": "node scripts/check-imports.mjs",
+    "preview": "vite preview",
+    "proxy": "node proxy/server.mjs --port 8787 --allow-origin http://localhost:5173",
+    "build:desktop": "vite build --base=./",
+    "electron:dev": "electron .",
+    "dist:win": "npm run build:desktop && electron-builder --win --x64"
+  },
+  "build": {
+    "appId": "cn.aiat.apitester",
+    "productName": "AI-API-Tester",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "electron/**/*",
+      "dist/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "portable": {
+      "artifactName": "AI-API-Tester-${version}-portable.exe"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "AI-API-Tester-${version}-setup.exe"
+    },
+    "compression": "maximum",
+    "asar": true
+  },
+  "dependencies": {
+    "@emotion/react": "^11.13.0",
+    "@emotion/styled": "^11.13.0",
+    "@mui/icons-material": "^5.16.7",
+    "@mui/material": "^5.16.7",
+    "dayjs": "^1.11.13",
+    "echarts": "^5.5.1",
+    "idb-keyval": "^6.2.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.26.0",
+    "zod": "^3.23.8",
+    "zustand": "^4.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "autoprefixer": "^10.4.20",
+    "electron": "^43.3.0",
+    "electron-builder": "^26.15.3",
+    "postcss": "^8.4.41",
+    "tailwindcss": "^3.4.10",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.0"
+  }
+}

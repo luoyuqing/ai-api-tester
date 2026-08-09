@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─────────────────────────────────────────────────────────────
+   Global styles.
+   Tailwind's preflight is disabled (see tailwind.config.ts) so MUI's
+   CssBaseline owns the reset. Only truly global bits live here.
+   ───────────────────────────────────────────────────────────── */
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Slim scrollbars for the log console / data grids */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 4px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: #94a3b8;
+}
+
+/* Log console monospace block */
+.aiat-log-line {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 20px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* Chart containers need an explicit height for ECharts autoresize */
+.aiat-chart {
+  width: 100%;
+}
