@@ -2,7 +2,7 @@
 
 [![Release](https://img.shields.io/github/v/release/luoyuqing/ai-api-tester?label=%E4%B8%8B%E8%BD%BD&color=blue)](https://github.com/luoyuqing/ai-api-tester/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/luoyuqing/ai-api-tester/total?label=%E4%B8%8B%E8%BD%BD%E9%87%8F)](https://github.com/luoyuqing/ai-api-tester/releases)
-[![License](https://img.shields.io/badge/license-MIT-green)](#)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Web-lightgrey)](https://github.com/luoyuqing/ai-api-tester/releases/latest)
 
 对任意 **OpenAI 兼容** 的 AI API 发起自动化评测，输出 **性能 / 功能 / 破限** 三大维度的可对比量化报告。
 
