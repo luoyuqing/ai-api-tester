@@ -4,6 +4,14 @@
 > 项目代号：`ai_api_tester`
 > 技术栈：Vite + React 18 + TS 5(strict) + MUI 5 + Tailwind 3 + Zustand 4 + ECharts 5
 
+> ⚠️ **这是一份时点快照，记录 Web 版完成时（2026-08-08）的状态。**
+> 2026-08-09 增加了 Electron 桌面版，以下结论已发生变化：
+> - CORS 与代理 sidecar 在桌面版**不再需要**（主进程直连，无浏览器同源策略约束）
+> - 已新增**单文件自包含 HTML 报告**导出（内联 ECharts，离线可交互）
+> - Provider 配置支持「连接并拉取模型」，无需手输模型名
+>
+> 项目当前状态请以 [`README.md`](./README.md) 为准，本文件仅作历史留档。
+
 ---
 
 ## 一、结论
@@ -11,7 +19,7 @@
 **核心功能已开发完成并通过编译验证。** 平台是一个「纯前端 SPA + 浏览器内评测引擎」，三大评测维度（性能 / 功能 / 破限安全）共 **10 个探针**全部实现，5 个页面 + 18 个组件已接通，生产构建一次通过。
 
 但需明确两点边界（详见第六节）：
-1. 它是**纯前端**设计（无后端），这是为符合银行内网合规要求（数据不出本机）主动选择的架构，不是"没做完"。
+1. 它是**纯前端**设计（无后端），评测数据全部留在本机浏览器，不经过任何中转服务。这是主动选择的架构，不是"没做完"。
 2. **导出只支持 CSV / JSON**，没有原生 `.xlsx` / `.pdf`（早期精简依赖时移除了 `xlsx` / `jspdf`）。
 
 ---
@@ -50,7 +58,7 @@
 ### 4. 评测引擎（零 React 依赖，`src/engine/`）
 - `EvaluationEngine`：任务编排与事件分发（`RunEvent`）
 - `Scheduler`：每 provider 一条 lane，**跨 provider 并行、同 provider 串行**（避免并发污染 TTFT 测量），含 `gate()` / `checkpoint()` 协作式暂停
-- `ProbeRegistry`：11 处 `register()`，探针统一注册
+- `ProbeRegistry`：10 处 `register()`，探针统一注册
 - `scorers/`：规则打分（默认）+ `LlmJudgeScorer`（LLM-as-judge 可插拔）
 - `aggregate/`：`aggregator.ts` + `normalize.ts`（N/A 铁律：不适用子指标 `score=null`，自动剔除权重分母）
 
@@ -88,7 +96,7 @@ OpenAI Chat / OpenAI Image / Multimodal / AgentHandshake 适配器 + `ProviderAd
 
 | 项 | 状态 | 说明 |
 |---|---|---|
-| **后端服务** | 无（设计如此） | 纯前端架构，无集中式 Key 存储、无数据出境，符合银行内网合规。若需多人共享/定时巡检，需后续替换 `Transport` 与 `Repository` 两个实现。 |
+| **后端服务** | 无（设计如此） | 纯前端架构，无集中式 Key 存储，评测数据不离开本机。若需多人共享/定时巡检，需后续替换 `Transport` 与 `Repository` 两个实现。 |
 | **原生 .xlsx / .pdf 导出** | ❌ 未实现 | 依赖精简时移除了 `xlsx`/`jspdf`，目前仅 CSV/JSON。CSV+BOM 可在 Excel 正常打开，但无多 sheet / 样式 / PDF 排版。 |
 | **内置 Mock / Demo 数据** | ❌ 无 | 跑评测必须填入真实 endpoint + key；没有"一键演示"模式。 |
 | **自动化测试套件** | ❌ 无 | 移除 vitest，改用两个零依赖静态自检脚本兜底（导入关系 + props 契约），但无运行时单测。 |
@@ -113,7 +121,7 @@ npm run proxy        # 可选：启动 CORS 代理 sidecar（8787 端口）
 
 ## 八、建议的下一步（按性价比排序）
 
-1. **补 `.xlsx` 导出**：装回 `xlsx`（或纯前端 `sheetjs`），让看板/对比表一键生成真实 Excel，银行汇报最常用。
+1. **补 `.xlsx` 导出**：装回 `xlsx`（或纯前端 `sheetjs`），让看板/对比表一键生成真实 Excel，便于二次加工与汇报。
 2. **加一个 Demo/Mock Provider**：让未接真实 API 时也能跑通完整链路做演示。
 3. **历史页回归**：用一条真实 provider 跑完，确认 IndexedDB 结果能在「历史」页加载、对比、再导出。
 4. **（可选）vitest 单测**：至少覆盖 `normalize` / `Scheduler` / `CompositeScorer` 三个纯函数模块。
