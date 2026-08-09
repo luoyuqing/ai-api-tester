@@ -1,6 +1,12 @@
 # AI API 质量评测平台（ai-api-tester）
 
+[![Release](https://img.shields.io/github/v/release/luoyuqing/ai-api-tester?label=%E4%B8%8B%E8%BD%BD&color=blue)](https://github.com/luoyuqing/ai-api-tester/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/luoyuqing/ai-api-tester/total?label=%E4%B8%8B%E8%BD%BD%E9%87%8F)](https://github.com/luoyuqing/ai-api-tester/releases)
+[![License](https://img.shields.io/badge/license-MIT-green)](#)
+
 对任意 **OpenAI 兼容** 的 AI API 发起自动化评测，输出 **性能 / 功能 / 破限** 三大维度的可对比量化报告。
+
+> **直接下载**：[AI-API-Tester-1.0.0-portable.exe](https://github.com/luoyuqing/ai-api-tester/releases/download/v1.0.0/AI-API-Tester-1.0.0-portable.exe)（93 MB，免安装，双击即跑）
 
 一套代码，两种形态：
 
@@ -17,7 +23,7 @@
 
 ### 1.1 桌面版（Windows）
 
-从 [Releases](../../releases) 下载，或本地自行构建：
+从 [Releases 页面](https://github.com/luoyuqing/ai-api-tester/releases/latest) 下载即用，或本地自行构建：
 
 ```bash
 npm install
