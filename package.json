@@ -11,6 +11,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit -p tsconfig.json && vite build",
+    "build:pages": "tsc --noEmit -p tsconfig.json && node scripts/build-pages.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "check": "node scripts/check-imports.mjs",
     "preview": "vite preview",

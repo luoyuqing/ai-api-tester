@@ -50,5 +50,12 @@ export default defineConfig(({ command }) => ({
   // base 可由环境变量覆盖：
   //   - 服务器子路径部署 → /tester/（默认 build 行为）
   //   - 桌面 Electron 构建 → ./ （跟随电子包内本地静态服务器根路径）
-  base: process.env.VITE_BASE ?? (command === 'build' ? '/tester/' : '/'),
+  // base 解析优先级：
+  //   1. Cloudflare Pages 构建环境（CF_PAGES=true）→ '/'（根路径托管）
+  //   2. 显式 VITE_BASE 覆盖（本地 Pages 测试 / 自定义子路径）
+  //   3. 默认：build → '/tester/'（服务器一 nginx 子路径），dev → '/'
+  base:
+    process.env.CF_PAGES === 'true'
+      ? '/'
+      : process.env.VITE_BASE ?? (command === 'build' ? '/tester/' : '/'),
 }));
